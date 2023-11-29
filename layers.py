@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 import constants as const
 from aux_functions import fd, gauss_dos
+from poisson_solvers import poisson_solver
 
 
 class Layer(object):
@@ -31,9 +32,10 @@ class Layer(object):
         """Density"""
 
         e_min = -15
+        e_max = self.ef + 5 * const.kb * self.tempr / const.el
         e_length = 2000
 
-        en = np.linspace(e_min, self.ef, e_length)
+        en = np.linspace(e_min, e_max, e_length)
         return np.trapz(self.dos(en - self.pot) * fd(en, self.ef, self.tempr), en)
 
 
@@ -94,6 +96,11 @@ class LayersStack(object):
             rho = self.get_charges()
             pot = poisson_solver(rho, ('d', 0), ('n', 0), 0.1)
 
+    def poisson(self):
+        rho = self.density()
+        pot = poisson_solver(rho, ('d', 0), ('n', 0), 0.1)
+        return pot
+
 
 class MatLib(dict):
 
@@ -126,54 +133,6 @@ def main():
     energy = np.linspace(-15, 15, 2000)
     dos = gauss_dos(energy, -3) + gauss_dos(energy, -1) + gauss_dos(energy, 1) + gauss_dos(energy, 3)
 
-    plt.plot(energy, dos)
-    plt.show()
-
-    layers = LayersStack()
-    layers.initialize_from_dos(energy, dos, 30)
-    layers.set_potential(np.linspace(4, -4, layers.num_layers))
-
-    density = layers.density()
-    plt.plot(density, '.-')
-    plt.show()
-
-    ldos = layers.ldos(energy)
-    plt.contourf(ldos)
-    plt.show()
-
-    l = Layer(energy, dos)
-    print(l.density())
-
-    interp = interpolate.interp1d(energy, dos)
-    layers = [Layer(energy, interp, z=j) for j in range(10)]
-
-    energy1 = np.linspace(-25, 25, 300)
-    energy2 = np.linspace(-25, 25, 500)
-
-    plt.plot(energy, dos, energy1, l.dos(energy1), energy2, l1.dos(energy2))
-    plt.show()
-
-    z = np.linspace(0, 50, 2000)
-    rho = np.zeros(z.shape)
-
-    for j in range(1, 40):
-        print(j)
-        rho += gauss_dos(z, j + 2, 0.15)
-
-    rho = (-gauss_dos(z, 20, 1) + gauss_dos(z, 30, 1)) * const.el / 1e-5
-    pot = poisson_solver(rho, ('d', 0), ('n', 0), 0.1)
-    # pot1 = poisson_solver1(rho, ('d', 0), ('n', 0), 0.1)
-
-    plt.plot(z, rho)
-    plt.plot(z, pot)
-    # plt.plot(z, pot1, 'o')
-    plt.show()
-
-def main1():
-
-    energy = np.linspace(-15, 15, 2000)
-    dos = gauss_dos(energy, -3) + gauss_dos(energy, -1) + gauss_dos(energy, 1) + gauss_dos(energy, 3)
-
     # register materials and their DOS
     MatLib(Tet=[energy, dos])
     layers = LayersStack(layers=['Tet']*100)
@@ -190,6 +149,27 @@ def main1():
     plt.show()
 
     plt.plot(layers.get_potential())
+    plt.show()
+
+
+def main1():
+
+    energy = np.linspace(-15, 15, 2000)
+    dos = gauss_dos(energy, -1) + gauss_dos(energy, 1)
+    dos1 = gauss_dos(energy, -2.8) + gauss_dos(energy, -0.8)
+
+    # register materials and their DOS
+    MatLib(Tet=[energy, dos], Tet1=[energy, dos1])
+    layers = LayersStack(layers=['Tet']*10+['Tet1']*10+['Tet']*10+['Tet1']*10+['Tet']*10)
+    # layers.set_potential(np.linspace(4, -4, layers.num_layers))
+
+    ldos = layers.ldos(energy)
+    plt.contourf(ldos)
+    plt.show()
+
+    pot = layers.poisson()
+
+    plt.plot(pot)
     plt.show()
 
 
