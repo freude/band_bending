@@ -252,6 +252,9 @@ def main1():
     plt.contourf(ldos)
     plt.show()
 
+    plt.plot(layers.get_potential())
+    plt.show()
+
 
 if __name__ == '__main__':
 
