@@ -1,5 +1,5 @@
 import numpy as np
-from band_bending import MatLib, gauss_dos
+from layers import MatLib, gauss_dos
 import unittest
 from scipy import interpolate
 
